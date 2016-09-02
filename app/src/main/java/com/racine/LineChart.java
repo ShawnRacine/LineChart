@@ -1,0 +1,441 @@
+package com.racine;
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Path;
+import android.graphics.Rect;
+import android.graphics.RectF;
+import android.support.v4.widget.EdgeEffectCompat;
+import android.util.AttributeSet;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.animation.DecelerateInterpolator;
+import android.widget.OverScroller;
+
+import com.racine.linechart.R;
+import com.racine.components.XAxis;
+import com.racine.components.YAxis;
+import com.racine.components.Series;
+import com.racine.datas.DataRes;
+
+import java.text.DecimalFormat;
+
+/**
+ * Created by sunrx on 2016/8/23.
+ */
+public class LineChart extends View {
+    private static final String TAG = "LineC";
+    private static final float SMOOTHNESS = 0.3f; // the higher the smoother, but don't go over 0.5
+
+    private int width, height;
+
+    protected XAxis xAxis = new XAxis();
+    protected YAxis yAxis = new YAxis();
+
+    private Rect contentRect = new Rect();
+
+    private Paint axisPaint = new Paint();
+    private Paint labelPaint = new Paint();
+    private Paint clipPaint = new Paint();
+    private Paint seriesPaint = new Paint();
+
+    private RectF unclipRect = new RectF();
+
+    private GestureDetector mGestureDetector;
+
+    private OverScroller mScroller;
+
+    private EdgeEffectCompat mLeftEdgeEffect;
+    private EdgeEffectCompat mRightEdgeEffect;
+
+    private Series series;
+
+    // multiple of 10.
+    private int precisionFormat = 10;
+
+    public LineChart(Context context) {
+        this(context, null);
+    }
+
+    public LineChart(Context context, AttributeSet attrs) {
+        this(context, attrs, 0);
+    }
+
+    public LineChart(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+
+        mGestureDetector = new GestureDetector(context, onGestureListener);
+        mScroller = new OverScroller(context, new DecelerateInterpolator());
+        mLeftEdgeEffect = new EdgeEffectCompat(context);
+        mRightEdgeEffect = new EdgeEffectCompat(context);
+
+        initAxisPaint(axisPaint);
+
+        initLabelPaint(labelPaint);
+
+        initClipPaint(clipPaint);
+
+        initSeriesPaint(seriesPaint);
+    }
+
+    protected void initAxisPaint(Paint axisPaint) {
+        axisPaint.setColor(Color.BLACK);
+        axisPaint.setStyle(Paint.Style.STROKE);
+        axisPaint.setStrokeWidth(1f);
+    }
+
+    protected void initLabelPaint(Paint labelPaint) {
+        labelPaint.setColor(Color.BLACK);
+        labelPaint.setTextSize(26);
+        labelPaint.setTextAlign(Paint.Align.CENTER);
+    }
+
+    protected void initClipPaint(Paint clipPaint) {
+        clipPaint.setColor(Color.TRANSPARENT);
+        clipPaint.setStyle(Paint.Style.STROKE);
+    }
+
+    protected void initSeriesPaint(Paint seriesPaint) {
+        seriesPaint.setColor(Color.BLUE);
+        seriesPaint.setStyle(Paint.Style.STROKE);
+        seriesPaint.setStrokeWidth(5f);
+        seriesPaint.setAntiAlias(true);
+    }
+
+    public void setSeries(Series series) {
+        this.series = series;
+        for (int i = 0; i < series.size(); i++) {
+            xAxis.addValue(i, series.getXValue(i));
+            yAxis.addValue(i, series.getYValue(i));
+        }
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        width = w;
+        height = h;
+
+        initContentRect();
+        initAxes();
+        initUnclipRect();
+
+        adjustYExtremun(series);
+
+        refreshCurrentViewport();
+    }
+
+    private void initContentRect() {
+        contentRect.set(getPaddingLeft(), getPaddingTop(),
+                (int) (width - getPaddingRight() - yAxis.getLabelWidth() - yAxis.getGap()),
+                (int) (height - getPaddingBottom() - xAxis.getLabelHeight() - xAxis.getGap()));
+    }
+
+    protected void initAxes() {
+        xAxis.setContentRect(contentRect);
+        yAxis.setContentRect(contentRect);
+    }
+
+    private void initUnclipRect() {
+        unclipRect.left = contentRect.left;
+        unclipRect.right = contentRect.left + (xAxis.size() - 1) * xAxis.getStep();
+        unclipRect.top = contentRect.top;
+        unclipRect.bottom = contentRect.bottom;
+    }
+
+    /**
+     * reset minYValue and maxYValue.
+     *
+     * @param series the object which will be reset.
+     */
+    protected void adjustYExtremun(Series series) {
+        // adjust minYValue and maxYValue.
+        float minY = (float) Math.floor(series.getMinYValue());
+        float maxY = (float) Math.ceil(series.getMaxYValue());
+
+        maxY = maxY + (precisionFormat - maxY % precisionFormat);
+
+        minY = minY - minY % precisionFormat;
+        if (minY < 0) {
+            minY = 0;
+        }
+
+        float range = maxY - minY;
+        float precision = (yAxis.getScaleNum() - 1) * precisionFormat;
+        float mod = range % precision;
+        float expansion = precision - mod;
+
+        float top = maxY + expansion / 2;
+        float bottom = minY - expansion / 2;
+        // end of adjustment.
+        series.setMinYValue(bottom);
+        series.setMaxYValue(top);
+
+        yAxis.setMinValue(Math.min(series.getMinYValue(), yAxis.getMinValue()));
+        yAxis.setMaxValue(Math.max(series.getMaxYValue(), yAxis.getMaxValue()));
+    }
+
+    /**
+     * It should be invoke when the range of xAxis or yAxis had been changed.
+     */
+    private void refreshCurrentViewport() {
+        //As the change of unclipRect.left or unclipRect.right,
+        // the step of xAxis need to change.
+//         series.size() * xAxis.getStep();
+        float xStep = (unclipRect.right - unclipRect.left) / (xAxis.size() - 1);
+        xAxis.setStep(xStep);
+
+        //As the change of unclipRect.top or unclipRect.bottom,
+        // the currentMaxYValue or currentMinYValue of currentViewport need to change.
+        float currentMinYValue = yAxis.getMinValue() +
+                (unclipRect.bottom - contentRect.bottom) / (unclipRect.bottom - unclipRect.top)
+                        * (yAxis.getMaxValue() - yAxis.getMinValue());
+        float currentMaxYValue = yAxis.getMaxValue() -
+                (contentRect.top - unclipRect.top) / (unclipRect.bottom - unclipRect.top)
+                        * (yAxis.getMaxValue() - yAxis.getMinValue());
+        yAxis.setCurrentMinValue(currentMinYValue);
+        yAxis.setCurrentMaxValue(currentMaxYValue);
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        int minChartSize = getResources().getDimensionPixelSize(R.dimen.min_chart_size);
+
+        setMinimumWidth(minChartSize);
+        setMinimumHeight(minChartSize);
+
+        int width = getPaddingLeft() + getPaddingRight() + getSuggestedMinimumWidth();
+        int height = getPaddingTop() + getPaddingBottom() + getSuggestedMinimumHeight();
+
+        setMeasuredDimension(resolveSize(width, widthMeasureSpec), resolveSize(height, heightMeasureSpec));
+    }
+
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+
+        int c = canvas.save();
+        canvas.clipRect(contentRect);
+
+        drawDataSeriesUnClipped(canvas, series, seriesPaint);
+
+        drawEdgeEffect(canvas);
+
+        canvas.restoreToCount(c);
+
+        drawAxes(canvas);
+
+        canvas.drawRect(contentRect, clipPaint);
+    }
+
+    private void drawAxes(Canvas canvas) {
+        //draw X-Axis
+        canvas.drawLine(contentRect.left, contentRect.bottom, contentRect.right, contentRect.bottom, axisPaint);
+        //draw Y-Axis
+        canvas.drawLine(contentRect.right, contentRect.top, contentRect.right, contentRect.bottom, axisPaint);
+        //draw X-Axis Label.
+        int xSize = xAxis.size();
+        float yLocation = contentRect.bottom + xAxis.getLabelHeight() + xAxis.getGap();
+        for (int i = 0; i < xSize; i++) {
+            if (xAxis.isVisible(i)) {
+                float xLocation = getXLocation(xAxis.getValue(i));
+
+                canvas.drawText(formatXLabel(xAxis.getValue(i)), xLocation, yLocation, labelPaint);
+            }
+        }
+
+        //draw Y-Axis Label.
+        labelPaint.setTextAlign(Paint.Align.LEFT);
+
+        int ySize = yAxis.getScaleNum();
+        float _xLocation = contentRect.right + yAxis.getGap();
+        for (int i = 0; i < ySize; i++) {
+            float _yLocation = getYLocation(yAxis.getCurrentValue(i))
+                    + Math.abs(labelPaint.getFontMetrics().ascent) / 3;
+
+            canvas.drawText(formatYLabel(yAxis.getCurrentValue(i)), _xLocation, _yLocation, labelPaint);
+        }
+        labelPaint.setTextAlign(Paint.Align.CENTER);
+    }
+
+    protected String formatXLabel(String xValue) {
+        return xValue;
+    }
+
+    protected String formatYLabel(float yValue) {
+        DecimalFormat df = new DecimalFormat("0");
+        return df.format(yValue) + "万";
+    }
+
+    private void drawDataSeriesUnClipped(Canvas canvas, Series series, Paint seriesPaint) {
+
+        int c = canvas.saveLayer(contentRect.left, contentRect.top, contentRect.right, contentRect.bottom,
+                seriesPaint, Canvas.ALL_SAVE_FLAG);
+
+        Path path = new Path();
+
+        float lX = 0, lY = 0;
+
+        int size = series.size();
+
+        for (int i = 0; i < size; i++) {
+            String xValue = series.getXValue(i);
+            float xLocation = getXLocation(xValue);
+
+            float yValue = series.getYValue(i);
+            float yLocation = getYLocation(yValue);
+
+            // previous point
+            float preXLocation = i == 0 ? xLocation : getXLocation(series.getXValue(i - 1));
+            float preYLocation = i == 0 ? yLocation : getYLocation(series.getYValue(i - 1));
+            // next point
+            float nextXLocation = i + 1 >= size ? xLocation : getXLocation(series.getXValue(i + 1));
+            float nextYLocation = i + 1 >= size ? yLocation : getYLocation(series.getYValue(i + 1));
+
+            // first control point
+            // distance between p and p0
+            float d0 = (float) Math.sqrt(Math.pow(xLocation - preXLocation, 2) + Math.pow(yLocation - preYLocation, 2));
+            // min is used to avoid going too much right
+            float x1 = Math.min(preXLocation + lX * d0, (preXLocation + xLocation) / 2);
+            float y1 = preYLocation + lY * d0;
+
+            // second control point
+            // distance between p1 and p0 (length of reference line)
+            float d1 = (float) Math.sqrt(Math.pow(nextXLocation - preXLocation, 2) + Math.pow(nextYLocation - preYLocation, 2));
+            lX = (nextXLocation - preXLocation) / d1 * SMOOTHNESS;// (lX,lY) is the slope of the reference line
+            //  lY = (nextYLocation - preYLocation) / d1 * SMOOTHNESS;
+            lY = 0;
+            //max is used to avoid going too much left
+            float x2 = Math.max(xLocation - lX * d0, (preXLocation + xLocation) / 2);
+            float y2 = yLocation - lY * d0;
+
+            if (i > 0) {
+                //    path.cubicTo(x1, y1, x2, y2, xLocation, yLocation);
+                drawLinePath(path, xLocation, yLocation, x1, y1, x2, y2);
+            } else {
+                path.moveTo(xLocation, yLocation);
+            }
+
+            canvas.drawCircle(xLocation, yLocation, 5, seriesPaint);
+            canvas.drawLine(xLocation, contentRect.top, xLocation, contentRect.bottom, axisPaint);
+
+            //
+            if (xLocation >= contentRect.left && xLocation <= contentRect.right) {
+                xAxis.setVisible(i);
+            } else {
+                xAxis.setInVisible(i);
+            }
+        }
+        canvas.drawPath(path, seriesPaint);
+
+        canvas.restoreToCount(c);
+    }
+
+    private float getXLocation(String xValue) {
+        return unclipRect.left + xAxis.getIndex(xValue) * xAxis.getStep();
+    }
+
+    private float getYLocation(float y) {
+
+        float yValueRange = yAxis.getMaxValue() - yAxis.getMinValue();
+
+        float yLocationRange = unclipRect.bottom - unclipRect.top;
+
+        float yLocation = yLocationRange * (yAxis.getMaxValue() - y) / yValueRange + unclipRect.top;
+
+        return yLocation;
+    }
+
+    /**
+     * path.lineTo or path.cubicTo
+     *
+     * @param path object used for canvas.drawPath();
+     * @param x0   x-coordinate of next point.
+     * @param y0   y-coordinate of next point.
+     * @param x1   x-coordinate of first control point.
+     * @param y1   y-coordinate of first control point.
+     * @param x2   x-coordinate of second control point.
+     * @param y2   y-coordinate of second control point.
+     */
+    protected void drawLinePath(Path path, float x0, float y0, float x1, float y1, float x2, float y2) {
+        path.cubicTo(x1, y1, x2, y2, x0, y0);
+    }
+
+    private void drawEdgeEffect(Canvas canvas) {
+        if (!mLeftEdgeEffect.isFinished()) {
+            canvas.translate(contentRect.left, contentRect.bottom);
+            canvas.rotate(-90, 0, 0);
+            mLeftEdgeEffect.setSize(contentRect.height(), contentRect.width());
+            if (mLeftEdgeEffect.draw(canvas)) {
+                invalidate();
+            }
+        }
+        if (!mRightEdgeEffect.isFinished()) {
+            canvas.translate(contentRect.right, contentRect.top);
+            canvas.rotate(90, 0, 0);
+            mRightEdgeEffect.setSize(contentRect.height(), contentRect.width());
+            if (mRightEdgeEffect.draw(canvas)) {
+                invalidate();
+            }
+        }
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        boolean retVal = mGestureDetector.onTouchEvent(event);
+        return retVal || super.onTouchEvent(event);
+    }
+
+    private GestureDetector.OnGestureListener onGestureListener = new GestureDetector.SimpleOnGestureListener() {
+        @Override
+        public boolean onDown(MotionEvent e) {
+            return true;
+        }
+
+        @Override
+        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+            unclipRect.left -= distanceX;
+            unclipRect.right = unclipRect.left + xAxis.getStep() * (DataRes.getSeries().size() - 1);
+            if (unclipRect.left > contentRect.left) {
+                unclipRect.left = contentRect.left;
+            }
+            if (unclipRect.right < contentRect.right) {
+                unclipRect.left = contentRect.right - xAxis.getStep() * (DataRes.getSeries().size() - 1);
+            }
+            if (distanceX < 0 && unclipRect.left >= contentRect.left) {
+                mLeftEdgeEffect.onPull(distanceX / contentRect.width());
+            }
+            if (distanceX > 0 && unclipRect.right <= contentRect.right) {
+                mRightEdgeEffect.onPull(distanceX / contentRect.width());
+            }
+            invalidate();
+            return true;
+        }
+
+        @Override
+        public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+            mScroller.fling((int) unclipRect.left, 0, (int) velocityX, 0,
+                    (int) (contentRect.right - xAxis.getStep() * (DataRes.getSeries().size() - 1)), contentRect.left, 0, 0);
+            mLeftEdgeEffect.onRelease();
+            mRightEdgeEffect.onRelease();
+            invalidate();
+            return true;
+        }
+    };
+
+    @Override
+    public void computeScroll() {
+        super.computeScroll();
+        if (mScroller.computeScrollOffset()) {
+            unclipRect.left = mScroller.getCurrX();
+            if (unclipRect.left == contentRect.left && mLeftEdgeEffect.isFinished()) {
+                mLeftEdgeEffect.onAbsorb((int) mScroller.getCurrVelocity());
+            }
+            invalidate();
+        }
+    }
+
+}
