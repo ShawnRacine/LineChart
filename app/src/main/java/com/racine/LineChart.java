@@ -164,7 +164,7 @@ public class LineChart extends View {
         }
 
         float range = maxY - minY;
-        float precision = (yAxis.getScaleNum() - 1) * precisionFormat;
+        float precision = (yAxis.getStopsNum() - 1) * precisionFormat;
         float mod = range % precision;
         float expansion = precision - mod;
 
@@ -250,7 +250,7 @@ public class LineChart extends View {
         //draw Y-Axis Label.
         labelPaint.setTextAlign(Paint.Align.LEFT);
 
-        int ySize = yAxis.getScaleNum();
+        int ySize = yAxis.getStopsNum();
         float _xLocation = contentRect.right + yAxis.getGap();
         for (int i = 0; i < ySize; i++) {
             float _yLocation = getYLocation(yAxis.getCurrentValue(i))

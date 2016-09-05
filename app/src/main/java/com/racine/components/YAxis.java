@@ -30,17 +30,17 @@ public class YAxis extends Axis<Float> {
         return step;
     }
 
-    public void setScaleNum(int scaleNum) {
-        this.scaleNum = scaleNum;
+    public void setStopsNum(int stopsNum) {
+        this.stopsNum = stopsNum;
 
-        step = Math.abs(contentRect.bottom - contentRect.top) / (scaleNum - 1);
+        step = Math.abs(contentRect.bottom - contentRect.top) / (stopsNum - 1);
     }
 
-    public int getScaleNum() {
-        if (scaleNum == 0) {
-            scaleNum = (int) (Math.abs(contentRect.bottom - contentRect.top) / getStep()) + 1;
+    public int getStopsNum() {
+        if (stopsNum == 0) {
+            stopsNum = (int) (Math.abs(contentRect.bottom - contentRect.top) / getStep()) + 1;
         }
-        return scaleNum;
+        return stopsNum;
     }
 
     public void setMinValue(float minYValue) {
@@ -88,7 +88,7 @@ public class YAxis extends Axis<Float> {
     }
 
     public float getCurrentValueStep() {
-        currentValueStep = (getCurrentMaxValue() - getCurrentMinValue()) / (getScaleNum() - 1);
+        currentValueStep = (getCurrentMaxValue() - getCurrentMinValue()) / (getStopsNum() - 1);
         return currentValueStep;
     }
 

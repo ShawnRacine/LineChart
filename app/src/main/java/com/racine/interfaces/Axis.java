@@ -19,7 +19,7 @@ public abstract class Axis<T> {
 
     protected float gap;
 
-    protected int scaleNum;
+    protected int stopsNum;
 
     protected float step;
 
@@ -73,12 +73,12 @@ public abstract class Axis<T> {
         return step;
     }
 
-    public void setScaleNum(int scaleNum) {
-        this.scaleNum = scaleNum;
+    public void setStopsNum(int stopsNum) {
+        this.stopsNum = stopsNum;
     }
 
-    public int getScaleNum() {
-        return scaleNum;
+    public int getStopsNum() {
+        return stopsNum;
     }
 
     public void addValue(int index, T value) {
