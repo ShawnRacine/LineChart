@@ -9,38 +9,16 @@ import java.util.List;
  * Created by sunrx on 2016/8/23.
  */
 public class DataRes {
-    public static List<String> getXAxes() {
-        ArrayList<String> xAxes = new ArrayList<>();
-        xAxes.add("2008");
-        xAxes.add("2009");
-        xAxes.add("2010");
-        xAxes.add("2011");
-        xAxes.add("2012");
-        xAxes.add("2013");
-        xAxes.add("2014");
-        xAxes.add("2015");
-        xAxes.add("2016");
-        xAxes.add("2017");
-        return xAxes;
-    }
-
-    public static List<Float> getYAxes() {
-        ArrayList<Float> yAxes = new ArrayList<>();
-        yAxes.add(130.7f);
-        yAxes.add(180.1f);
-        yAxes.add(110.2f);
-        yAxes.add(50.9f);
-        yAxes.add(150.4f);
-        yAxes.add(170.8f);
-        yAxes.add(10.2f);
-        yAxes.add(190.7f);
-        yAxes.add(140.5f);
-        yAxes.add(190.1f);
-        return yAxes;
-    }
-
     public static Series getSeries() {
         Series series = new Series();
+        series.add("2000", 110.2f);
+        series.add("2001", 150.9f);
+        series.add("2002", 150.4f);
+        series.add("2003", 170.8f);
+        series.add("2004", 110.2f);
+        series.add("2005", 190.7f);
+        series.add("2006", 140.5f);
+        series.add("2007", 190.1f);
         series.add("2008", 130.7f);
         series.add("2009", 180.1f);
         series.add("2010", 110.2f);
@@ -51,6 +29,29 @@ public class DataRes {
         series.add("2015", 190.7f);
         series.add("2016", 140.5f);
         series.add("2017", 190.1f);
+        return series;
+    }
+
+    public static Series getSeries1() {
+        Series series = new Series();
+        series.add("2000", 150.2f);
+        series.add("2001", 130.9f);
+        series.add("2002", 156.4f);
+        series.add("2003", 180.8f);
+        series.add("2004", 180.2f);
+        series.add("2005", 140.7f);
+        series.add("2006", 150.5f);
+        series.add("2007", 160.1f);
+        series.add("2008", 140.7f);
+        series.add("2009", 120.1f);
+        series.add("2010", 170.2f);
+        series.add("2011", 160.9f);
+        series.add("2012", 170.4f);
+        series.add("2013", 190.8f);
+        series.add("2014", 130.2f);
+        series.add("2015", 160.7f);
+        series.add("2016", 120.5f);
+        series.add("2017", 160.1f);
         return series;
     }
 

@@ -7,14 +7,17 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.support.v4.view.animation.LinearOutSlowInInterpolator;
 import android.support.v4.widget.EdgeEffectCompat;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.DecelerateInterpolator;
+import android.view.animation.LinearInterpolator;
 import android.widget.OverScroller;
 
+import com.racine.exception.InconsistentSizeException;
 import com.racine.linechart.R;
 import com.racine.components.XAxis;
 import com.racine.components.YAxis;
@@ -22,11 +25,13 @@ import com.racine.components.Series;
 import com.racine.datas.DataRes;
 
 import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by sunrx on 2016/8/23.
  */
-public class LineChart extends View {
+public abstract class GraphView extends View {
     private static final String TAG = "LineC";
     private static final float SMOOTHNESS = 0.3f; // the higher the smoother, but don't go over 0.5
 
@@ -51,66 +56,80 @@ public class LineChart extends View {
     private EdgeEffectCompat mLeftEdgeEffect;
     private EdgeEffectCompat mRightEdgeEffect;
 
-    private Series series;
+    private List<Series> seriesList;
 
     // multiple of 10.
     private int precisionFormat = 10;
 
-    public LineChart(Context context) {
+    public GraphView(Context context) {
         this(context, null);
     }
 
-    public LineChart(Context context, AttributeSet attrs) {
+    public GraphView(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
     }
 
-    public LineChart(Context context, AttributeSet attrs, int defStyleAttr) {
+    public GraphView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
 
+        seriesList = new ArrayList<>();
+
         mGestureDetector = new GestureDetector(context, onGestureListener);
-        mScroller = new OverScroller(context, new DecelerateInterpolator());
+        mScroller = new OverScroller(context, new LinearInterpolator());
         mLeftEdgeEffect = new EdgeEffectCompat(context);
         mRightEdgeEffect = new EdgeEffectCompat(context);
 
-        initAxisPaint(axisPaint);
+        renderAxesPaint(axisPaint);
 
-        initLabelPaint(labelPaint);
+        renderLabelPaint(labelPaint);
 
-        initClipPaint(clipPaint);
+        renderClipPaint(clipPaint);
 
-        initSeriesPaint(seriesPaint);
+        renderSeriesPaint(seriesPaint);
     }
 
-    protected void initAxisPaint(Paint axisPaint) {
+    protected void renderAxesPaint(Paint axisPaint) {
         axisPaint.setColor(Color.BLACK);
         axisPaint.setStyle(Paint.Style.STROKE);
         axisPaint.setStrokeWidth(1f);
     }
 
-    protected void initLabelPaint(Paint labelPaint) {
+    protected void renderLabelPaint(Paint labelPaint) {
         labelPaint.setColor(Color.BLACK);
         labelPaint.setTextSize(26);
         labelPaint.setTextAlign(Paint.Align.CENTER);
     }
 
-    protected void initClipPaint(Paint clipPaint) {
+    protected void renderClipPaint(Paint clipPaint) {
         clipPaint.setColor(Color.TRANSPARENT);
         clipPaint.setStyle(Paint.Style.STROKE);
     }
 
-    protected void initSeriesPaint(Paint seriesPaint) {
+    protected void renderSeriesPaint(Paint seriesPaint) {
         seriesPaint.setColor(Color.BLUE);
         seriesPaint.setStyle(Paint.Style.STROKE);
         seriesPaint.setStrokeWidth(5f);
         seriesPaint.setAntiAlias(true);
     }
 
-    public void setSeries(Series series) {
-        this.series = series;
-        for (int i = 0; i < series.size(); i++) {
-            xAxis.addValue(i, series.getXValue(i));
-            yAxis.addValue(i, series.getYValue(i));
+    public void addSeries(Series series) {
+        seriesList.add(series);
+
+        if (seriesList.size() == 1) {
+            for (int i = 0; i < series.size(); i++) {
+                xAxis.addValue(i, series.getXValue(i));
+            }
+            yAxis.setMinValue(series.getMinYValue());
+            yAxis.setMaxValue(series.getMaxYValue());
+        } else {
+            if (yAxis.getMinValue() > series.getMinYValue()) {
+                yAxis.setMinValue(series.getMinYValue());
+            }
+            if (yAxis.getMaxValue() < series.getMaxYValue()) {
+                yAxis.setMaxValue(series.getMaxYValue());
+            }
         }
+
     }
 
     @Override
@@ -123,7 +142,7 @@ public class LineChart extends View {
         initAxes();
         initUnclipRect();
 
-        adjustYExtremun(series);
+        adjustYExtremun(yAxis);
 
         refreshCurrentViewport();
     }
@@ -135,6 +154,7 @@ public class LineChart extends View {
     }
 
     protected void initAxes() {
+        //need to abolish setContentRect.
         xAxis.setContentRect(contentRect);
         yAxis.setContentRect(contentRect);
     }
@@ -149,12 +169,12 @@ public class LineChart extends View {
     /**
      * reset minYValue and maxYValue.
      *
-     * @param series the object which will be reset.
+     * @param yAxis the object which will be reset.
      */
-    protected void adjustYExtremun(Series series) {
+    protected void adjustYExtremun(YAxis yAxis) {
         // adjust minYValue and maxYValue.
-        float minY = (float) Math.floor(series.getMinYValue());
-        float maxY = (float) Math.ceil(series.getMaxYValue());
+        float minY = (float) Math.floor(yAxis.getMinValue());
+        float maxY = (float) Math.ceil(yAxis.getMaxValue());
 
         maxY = maxY + (precisionFormat - maxY % precisionFormat);
 
@@ -171,11 +191,11 @@ public class LineChart extends View {
         float top = maxY + expansion / 2;
         float bottom = minY - expansion / 2;
         // end of adjustment.
-        series.setMinYValue(bottom);
-        series.setMaxYValue(top);
+        yAxis.setMinValue(bottom);
+        yAxis.setMaxValue(top);
 
-        yAxis.setMinValue(Math.min(series.getMinYValue(), yAxis.getMinValue()));
-        yAxis.setMaxValue(Math.max(series.getMaxYValue(), yAxis.getMaxValue()));
+        yAxis.setMinValue(Math.min(yAxis.getMinValue(), yAxis.getMinValue()));
+        yAxis.setMaxValue(Math.max(yAxis.getMaxValue(), yAxis.getMaxValue()));
     }
 
     /**
@@ -206,11 +226,15 @@ public class LineChart extends View {
 
         setMinimumWidth(minChartSize);
         setMinimumHeight(minChartSize);
-
+        //when set wrapcontent,
         int width = getPaddingLeft() + getPaddingRight() + getSuggestedMinimumWidth();
         int height = getPaddingTop() + getPaddingBottom() + getSuggestedMinimumHeight();
 
         setMeasuredDimension(resolveSize(width, widthMeasureSpec), resolveSize(height, heightMeasureSpec));
+    }
+
+    public void start(int duration) {
+        mScroller.startScroll(contentRect.left, 0, (int) (contentRect.right - unclipRect.width()), 0, duration);
     }
 
     @Override
@@ -220,12 +244,13 @@ public class LineChart extends View {
         int c = canvas.save();
         canvas.clipRect(contentRect);
 
-        drawDataSeriesUnClipped(canvas, series, seriesPaint);
+        drawDataSeriesUnClipped(canvas, seriesList, seriesPaint);
 
         drawEdgeEffect(canvas);
 
         canvas.restoreToCount(c);
 
+        //get visibility of xAxis after drawDataSeriesUnClipped.
         drawAxes(canvas);
 
         canvas.drawRect(contentRect, clipPaint);
@@ -270,81 +295,96 @@ public class LineChart extends View {
         return df.format(yValue) + "万";
     }
 
-    private void drawDataSeriesUnClipped(Canvas canvas, Series series, Paint seriesPaint) {
+    private void drawDataSeriesUnClipped(Canvas canvas, List<Series> seriesList, Paint seriesPaint) {
+        for (int j = 0; j < seriesList.size(); j++) {
+            Series series = seriesList.get(j);
 
-        int c = canvas.saveLayer(contentRect.left, contentRect.top, contentRect.right, contentRect.bottom,
-                seriesPaint, Canvas.ALL_SAVE_FLAG);
+            int c = canvas.saveLayer(contentRect.left, contentRect.top, contentRect.right, contentRect.bottom,
+                    seriesPaint, Canvas.ALL_SAVE_FLAG);
 
-        Path path = new Path();
+            Path path = new Path();
 
-        float lX = 0, lY = 0;
+            float lX = 0, lY = 0;
 
-        int size = series.size();
+            int size = series.size();
 
-        for (int i = 0; i < size; i++) {
-            String xValue = series.getXValue(i);
-            float xLocation = getXLocation(xValue);
+            for (int i = 0; i < size; i++) {
+                String xValue = series.getXValue(i);
+                float xLocation = getXLocation(xValue);
 
-            float yValue = series.getYValue(i);
-            float yLocation = getYLocation(yValue);
+                float yValue = series.getYValue(i);
+                float yLocation = getYLocation(yValue);
 
-            // previous point
-            float preXLocation = i == 0 ? xLocation : getXLocation(series.getXValue(i - 1));
-            float preYLocation = i == 0 ? yLocation : getYLocation(series.getYValue(i - 1));
-            // next point
-            float nextXLocation = i + 1 >= size ? xLocation : getXLocation(series.getXValue(i + 1));
-            float nextYLocation = i + 1 >= size ? yLocation : getYLocation(series.getYValue(i + 1));
+                // previous point
+                float preXLocation = i == 0 ? xLocation : getXLocation(series.getXValue(i - 1));
+                float preYLocation = i == 0 ? yLocation : getYLocation(series.getYValue(i - 1));
+                // next point
+                float nextXLocation = i + 1 >= size ? xLocation : getXLocation(series.getXValue(i + 1));
+                float nextYLocation = i + 1 >= size ? yLocation : getYLocation(series.getYValue(i + 1));
 
-            // first control point
-            // distance between p and p0
-            float d0 = (float) Math.sqrt(Math.pow(xLocation - preXLocation, 2) + Math.pow(yLocation - preYLocation, 2));
-            // min is used to avoid going too much right
-            float x1 = Math.min(preXLocation + lX * d0, (preXLocation + xLocation) / 2);
-            float y1 = preYLocation + lY * d0;
+                // first control point
+                // distance between p and p0
+                float d0 = (float) Math.sqrt(Math.pow(xLocation - preXLocation, 2) + Math.pow(yLocation - preYLocation, 2));
+                // min is used to avoid going too much right
+                float x1 = Math.min(preXLocation + lX * d0, (preXLocation + xLocation) / 2);
+                float y1 = preYLocation + lY * d0;
 
-            // second control point
-            // distance between p1 and p0 (length of reference line)
-            float d1 = (float) Math.sqrt(Math.pow(nextXLocation - preXLocation, 2) + Math.pow(nextYLocation - preYLocation, 2));
-            lX = (nextXLocation - preXLocation) / d1 * SMOOTHNESS;// (lX,lY) is the slope of the reference line
-            //  lY = (nextYLocation - preYLocation) / d1 * SMOOTHNESS;
-            lY = 0;
-            //max is used to avoid going too much left
-            float x2 = Math.max(xLocation - lX * d0, (preXLocation + xLocation) / 2);
-            float y2 = yLocation - lY * d0;
+                // second control point
+                // distance between p1 and p0 (length of reference line)
+                float d1 = (float) Math.sqrt(Math.pow(nextXLocation - preXLocation, 2) + Math.pow(nextYLocation - preYLocation, 2));
+                lX = (nextXLocation - preXLocation) / d1 * SMOOTHNESS;// (lX,lY) is the slope of the reference line
+                //  lY = (nextYLocation - preYLocation) / d1 * SMOOTHNESS;
+                lY = 0;
+                //max is used to avoid going too much left
+                float x2 = Math.max(xLocation - lX * d0, (preXLocation + xLocation) / 2);
+                float y2 = yLocation - lY * d0;
 
-            if (i > 0) {
-                //    path.cubicTo(x1, y1, x2, y2, xLocation, yLocation);
-                drawLinePath(path, xLocation, yLocation, x1, y1, x2, y2);
-            } else {
-                path.moveTo(xLocation, yLocation);
+                if (i > 0) {
+                    //    path.cubicTo(x1, y1, x2, y2, xLocation, yLocation);
+                    drawLinePath(path, xLocation, yLocation, x1, y1, x2, y2);
+                } else {
+                    path.moveTo(xLocation, yLocation);
+                }
+
+                canvas.drawCircle(xLocation, yLocation, 5, seriesPaint);
+                canvas.drawLine(xLocation, contentRect.top, xLocation, contentRect.bottom, axisPaint);
+
+                //
+                if (xLocation >= contentRect.left && xLocation <= contentRect.right) {
+                    xAxis.setVisible(i);
+                } else {
+                    xAxis.setInVisible(i);
+                }
             }
+            canvas.drawPath(path, seriesPaint);
 
-            canvas.drawCircle(xLocation, yLocation, 5, seriesPaint);
-            canvas.drawLine(xLocation, contentRect.top, xLocation, contentRect.bottom, axisPaint);
-
-            //
-            if (xLocation >= contentRect.left && xLocation <= contentRect.right) {
-                xAxis.setVisible(i);
-            } else {
-                xAxis.setInVisible(i);
-            }
+            canvas.restoreToCount(c);
         }
-        canvas.drawPath(path, seriesPaint);
-
-        canvas.restoreToCount(c);
     }
 
+    /**
+     * get x location by x value.
+     *
+     * @param xValue x value from datasource.
+     * @return x location.
+     */
     private float getXLocation(String xValue) {
         return unclipRect.left + xAxis.getIndex(xValue) * xAxis.getStep();
     }
 
-    private float getYLocation(float y) {
+    /**
+     * get y location by y value.
+     *
+     * @param yValue y value from datasource.
+     * @return y location.
+     */
+    private float getYLocation(float yValue) {
 
         float yValueRange = yAxis.getMaxValue() - yAxis.getMinValue();
 
         float yLocationRange = unclipRect.bottom - unclipRect.top;
 
-        float yLocation = yLocationRange * (yAxis.getMaxValue() - y) / yValueRange + unclipRect.top;
+        float yLocation = yLocationRange * (yAxis.getMaxValue() - yValue) / yValueRange + unclipRect.top;
 
         return yLocation;
     }
@@ -396,6 +436,11 @@ public class LineChart extends View {
         }
 
         @Override
+        public boolean onSingleTapUp(MotionEvent e) {
+            return super.onSingleTapUp(e);
+        }
+
+        @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
             unclipRect.left -= distanceX;
             unclipRect.right = unclipRect.left + xAxis.getStep() * (DataRes.getSeries().size() - 1);
@@ -406,10 +451,10 @@ public class LineChart extends View {
                 unclipRect.left = contentRect.right - xAxis.getStep() * (DataRes.getSeries().size() - 1);
             }
             if (distanceX < 0 && unclipRect.left >= contentRect.left) {
-                mLeftEdgeEffect.onPull(distanceX / contentRect.width());
+                mLeftEdgeEffect.onPull(distanceX / contentRect.width(), 0.5f);
             }
             if (distanceX > 0 && unclipRect.right <= contentRect.right) {
-                mRightEdgeEffect.onPull(distanceX / contentRect.width());
+                mRightEdgeEffect.onPull(distanceX / contentRect.width(), 0.5f);
             }
             invalidate();
             return true;
@@ -418,7 +463,8 @@ public class LineChart extends View {
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
             mScroller.fling((int) unclipRect.left, 0, (int) velocityX, 0,
-                    (int) (contentRect.right - xAxis.getStep() * (DataRes.getSeries().size() - 1)), contentRect.left, 0, 0);
+                    (int) (contentRect.right - xAxis.getStep() * (DataRes.getSeries().size() - 1)), contentRect.left, 0, 0, (int) xAxis.getStep(), 0);
+            //guarantee the smoother effect.
             mLeftEdgeEffect.onRelease();
             mRightEdgeEffect.onRelease();
             invalidate();
@@ -431,9 +477,7 @@ public class LineChart extends View {
         super.computeScroll();
         if (mScroller.computeScrollOffset()) {
             unclipRect.left = mScroller.getCurrX();
-            if (unclipRect.left == contentRect.left && mLeftEdgeEffect.isFinished()) {
-                mLeftEdgeEffect.onAbsorb((int) mScroller.getCurrVelocity());
-            }
+//            if (mLeftEdgeEffect.onAbsorb((int) mScroller.getCurrVelocity()) || mRightEdgeEffect.onAbsorb((int) mScroller.getCurrVelocity()))
             invalidate();
         }
     }
