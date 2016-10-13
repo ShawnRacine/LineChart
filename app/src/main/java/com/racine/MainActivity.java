@@ -14,6 +14,7 @@ public class MainActivity extends AppCompatActivity {
     private ListView listView;
     GraphView chart;
     Handler handler = new Handler();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

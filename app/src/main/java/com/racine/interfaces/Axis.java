@@ -2,6 +2,7 @@ package com.racine.interfaces;
 
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.RectF;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +11,7 @@ import java.util.List;
  * Created by sunrx on 2016/8/30.
  */
 public abstract class Axis<T> {
-    protected Rect contentRect;
+    protected RectF contentRect;
 
     protected Paint paint;
 
@@ -19,7 +20,7 @@ public abstract class Axis<T> {
 
     protected float gap;
 
-    protected int stopsNum;
+    protected int size;
 
     protected float step;
 
@@ -32,12 +33,12 @@ public abstract class Axis<T> {
         labelWidth = paint.measureText("0000万");
         labelHeight = Math.abs(paint.getFontMetrics().top) + paint.getFontMetrics().bottom;
 
-        gap = 5;
+        gap = 10;
 
         values = new ArrayList<>();
     }
 
-    public void setContentRect(Rect contentRect) {
+    public void setContentRect(RectF contentRect) {
         this.contentRect = contentRect;
     }
 
@@ -73,12 +74,12 @@ public abstract class Axis<T> {
         return step;
     }
 
-    public void setStopsNum(int stopsNum) {
-        this.stopsNum = stopsNum;
+    public void setSize(int size) {
+        this.size = size;
     }
 
-    public int getStopsNum() {
-        return stopsNum;
+    public int getSize() {
+        return size;
     }
 
     public void addValue(int index, T value) {

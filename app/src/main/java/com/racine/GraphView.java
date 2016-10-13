@@ -10,6 +10,7 @@ import android.graphics.RectF;
 import android.support.v4.view.animation.LinearOutSlowInInterpolator;
 import android.support.v4.widget.EdgeEffectCompat;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
@@ -40,14 +41,13 @@ public abstract class GraphView extends View {
     protected XAxis xAxis = new XAxis();
     protected YAxis yAxis = new YAxis();
 
-    private Rect contentRect = new Rect();
-
     private Paint axisPaint = new Paint();
     private Paint labelPaint = new Paint();
-    private Paint clipPaint = new Paint();
-    private Paint seriesPaint = new Paint();
+    private List<Paint> seriesPaintList = new ArrayList<>();
 
-    private RectF unclipRect = new RectF();
+    private RectF contentRectF = new RectF();
+    private RectF unclipRectF = new RectF();
+    private RectF clipRectF = new RectF();
 
     private GestureDetector mGestureDetector;
 
@@ -75,7 +75,7 @@ public abstract class GraphView extends View {
         seriesList = new ArrayList<>();
 
         mGestureDetector = new GestureDetector(context, onGestureListener);
-        mScroller = new OverScroller(context, new LinearInterpolator());
+        mScroller = new OverScroller(context, new DecelerateInterpolator());
         mLeftEdgeEffect = new EdgeEffectCompat(context);
         mRightEdgeEffect = new EdgeEffectCompat(context);
 
@@ -83,9 +83,7 @@ public abstract class GraphView extends View {
 
         renderLabelPaint(labelPaint);
 
-        renderClipPaint(clipPaint);
-
-        renderSeriesPaint(seriesPaint);
+        renderSeriesPaint(seriesPaintList);
     }
 
     protected void renderAxesPaint(Paint axisPaint) {
@@ -105,11 +103,14 @@ public abstract class GraphView extends View {
         clipPaint.setStyle(Paint.Style.STROKE);
     }
 
-    protected void renderSeriesPaint(Paint seriesPaint) {
+    protected void renderSeriesPaint(List<Paint> seriesPaintList) {
+        Paint seriesPaint = new Paint();
         seriesPaint.setColor(Color.BLUE);
         seriesPaint.setStyle(Paint.Style.STROKE);
         seriesPaint.setStrokeWidth(5f);
         seriesPaint.setAntiAlias(true);
+
+        seriesPaintList.add(seriesPaint);
     }
 
     public void addSeries(Series series) {
@@ -140,7 +141,6 @@ public abstract class GraphView extends View {
 
         initContentRect();
         initAxes();
-        initUnclipRect();
 
         adjustYExtremun(yAxis);
 
@@ -148,22 +148,20 @@ public abstract class GraphView extends View {
     }
 
     private void initContentRect() {
-        contentRect.set(getPaddingLeft(), getPaddingTop(),
-                (int) (width - getPaddingRight() - yAxis.getLabelWidth() - yAxis.getGap()),
-                (int) (height - getPaddingBottom() - xAxis.getLabelHeight() - xAxis.getGap()));
+        contentRectF.set(getPaddingLeft(), getPaddingTop(), width - getPaddingRight(), height - getPaddingBottom());
+
+        clipRectF.set(contentRectF.left + xAxis.getLabelWidth() / 2,
+                contentRectF.top + yAxis.getLabelHeight(),
+                contentRectF.right - yAxis.getLabelWidth() - yAxis.getGap(),
+                contentRectF.bottom - xAxis.getLabelHeight() - xAxis.getGap());
+
+        unclipRectF.set(clipRectF.left, clipRectF.top, clipRectF.left + (xAxis.getSize() - 1) * xAxis.getStep(), clipRectF.bottom);
     }
 
     protected void initAxes() {
         //need to abolish setContentRect.
-        xAxis.setContentRect(contentRect);
-        yAxis.setContentRect(contentRect);
-    }
-
-    private void initUnclipRect() {
-        unclipRect.left = contentRect.left;
-        unclipRect.right = contentRect.left + (xAxis.size() - 1) * xAxis.getStep();
-        unclipRect.top = contentRect.top;
-        unclipRect.bottom = contentRect.bottom;
+        xAxis.setContentRect(clipRectF);
+        yAxis.setContentRect(clipRectF);
     }
 
     /**
@@ -184,7 +182,7 @@ public abstract class GraphView extends View {
         }
 
         float range = maxY - minY;
-        float precision = (yAxis.getStopsNum() - 1) * precisionFormat;
+        float precision = (yAxis.getSize() - 1) * precisionFormat;
         float mod = range % precision;
         float expansion = precision - mod;
 
@@ -202,19 +200,19 @@ public abstract class GraphView extends View {
      * It should be invoke when the range of xAxis or yAxis had been changed.
      */
     private void refreshCurrentViewport() {
-        //As the change of unclipRect.left or unclipRect.right,
+        //As the change of unclipRectF.left or unclipRectF.right,
         // the step of xAxis need to change.
 //         series.size() * xAxis.getStep();
-        float xStep = (unclipRect.right - unclipRect.left) / (xAxis.size() - 1);
-        xAxis.setStep(xStep);
+//        float xStep = (unclipRectF.right - unclipRectF.left) / (xAxis.size() - 1);
+//        xAxis.setStep(xStep);
 
-        //As the change of unclipRect.top or unclipRect.bottom,
+        //As the change of unclipRectF.top or unclipRectF.bottom,
         // the currentMaxYValue or currentMinYValue of currentViewport need to change.
         float currentMinYValue = yAxis.getMinValue() +
-                (unclipRect.bottom - contentRect.bottom) / (unclipRect.bottom - unclipRect.top)
+                (unclipRectF.bottom - clipRectF.bottom) / (unclipRectF.bottom - unclipRectF.top)
                         * (yAxis.getMaxValue() - yAxis.getMinValue());
         float currentMaxYValue = yAxis.getMaxValue() -
-                (contentRect.top - unclipRect.top) / (unclipRect.bottom - unclipRect.top)
+                (clipRectF.top - unclipRectF.top) / (unclipRectF.bottom - unclipRectF.top)
                         * (yAxis.getMaxValue() - yAxis.getMinValue());
         yAxis.setCurrentMinValue(currentMinYValue);
         yAxis.setCurrentMaxValue(currentMaxYValue);
@@ -234,7 +232,7 @@ public abstract class GraphView extends View {
     }
 
     public void start(int duration) {
-        mScroller.startScroll(contentRect.left, 0, (int) (contentRect.right - unclipRect.width()), 0, duration);
+        mScroller.startScroll((int) clipRectF.left, 0, (int) -(unclipRectF.width() - (clipRectF.right - clipRectF.left)), 0, duration);
     }
 
     @Override
@@ -242,28 +240,23 @@ public abstract class GraphView extends View {
         super.onDraw(canvas);
 
         int c = canvas.save();
-        canvas.clipRect(contentRect);
-
-        drawDataSeriesUnClipped(canvas, seriesList, seriesPaint);
-
         drawEdgeEffect(canvas);
-
         canvas.restoreToCount(c);
+
+        drawDataSeriesUnClipped(canvas, seriesList, seriesPaintList);
 
         //get visibility of xAxis after drawDataSeriesUnClipped.
         drawAxes(canvas);
-
-        canvas.drawRect(contentRect, clipPaint);
     }
 
     private void drawAxes(Canvas canvas) {
         //draw X-Axis
-        canvas.drawLine(contentRect.left, contentRect.bottom, contentRect.right, contentRect.bottom, axisPaint);
+        canvas.drawLine(clipRectF.left, clipRectF.bottom, clipRectF.right, clipRectF.bottom, axisPaint);
         //draw Y-Axis
-        canvas.drawLine(contentRect.right, contentRect.top, contentRect.right, contentRect.bottom, axisPaint);
+        canvas.drawLine(clipRectF.right, clipRectF.top, clipRectF.right, clipRectF.bottom, axisPaint);
         //draw X-Axis Label.
         int xSize = xAxis.size();
-        float yLocation = contentRect.bottom + xAxis.getLabelHeight() + xAxis.getGap();
+        float yLocation = clipRectF.bottom + xAxis.getLabelHeight() + xAxis.getGap();
         for (int i = 0; i < xSize; i++) {
             if (xAxis.isVisible(i)) {
                 float xLocation = getXLocation(xAxis.getValue(i));
@@ -275,8 +268,8 @@ public abstract class GraphView extends View {
         //draw Y-Axis Label.
         labelPaint.setTextAlign(Paint.Align.LEFT);
 
-        int ySize = yAxis.getStopsNum();
-        float _xLocation = contentRect.right + yAxis.getGap();
+        int ySize = yAxis.getSize();
+        float _xLocation = clipRectF.right + yAxis.getGap();
         for (int i = 0; i < ySize; i++) {
             float _yLocation = getYLocation(yAxis.getCurrentValue(i))
                     + Math.abs(labelPaint.getFontMetrics().ascent) / 3;
@@ -295,12 +288,18 @@ public abstract class GraphView extends View {
         return df.format(yValue) + "万";
     }
 
-    private void drawDataSeriesUnClipped(Canvas canvas, List<Series> seriesList, Paint seriesPaint) {
+    private void drawDataSeriesUnClipped(Canvas canvas, List<Series> seriesList, List<Paint> seriesPaintList) {
         for (int j = 0; j < seriesList.size(); j++) {
+            Paint seriesPaint;
+            try {
+                seriesPaint = seriesPaintList.get(j);
+            }catch (Exception e){
+                seriesPaint = seriesPaintList.get(0);
+            }
+
             Series series = seriesList.get(j);
 
-            int c = canvas.saveLayer(contentRect.left, contentRect.top, contentRect.right, contentRect.bottom,
-                    seriesPaint, Canvas.ALL_SAVE_FLAG);
+            int c = canvas.saveLayer(clipRectF, null, Canvas.ALL_SAVE_FLAG);
 
             Path path = new Path();
 
@@ -347,10 +346,10 @@ public abstract class GraphView extends View {
                 }
 
                 canvas.drawCircle(xLocation, yLocation, 5, seriesPaint);
-                canvas.drawLine(xLocation, contentRect.top, xLocation, contentRect.bottom, axisPaint);
+                canvas.drawLine(xLocation, clipRectF.top, xLocation, clipRectF.bottom, axisPaint);
 
                 //
-                if (xLocation >= contentRect.left && xLocation <= contentRect.right) {
+                if (xLocation >= clipRectF.left && xLocation <= clipRectF.right) {
                     xAxis.setVisible(i);
                 } else {
                     xAxis.setInVisible(i);
@@ -369,7 +368,7 @@ public abstract class GraphView extends View {
      * @return x location.
      */
     private float getXLocation(String xValue) {
-        return unclipRect.left + xAxis.getIndex(xValue) * xAxis.getStep();
+        return unclipRectF.left + xAxis.getIndex(xValue) * xAxis.getStep();
     }
 
     /**
@@ -382,9 +381,9 @@ public abstract class GraphView extends View {
 
         float yValueRange = yAxis.getMaxValue() - yAxis.getMinValue();
 
-        float yLocationRange = unclipRect.bottom - unclipRect.top;
+        float yLocationRange = clipRectF.bottom - clipRectF.top;
 
-        float yLocation = yLocationRange * (yAxis.getMaxValue() - yValue) / yValueRange + unclipRect.top;
+        float yLocation = yLocationRange * (yAxis.getMaxValue() - yValue) / yValueRange + clipRectF.top;
 
         return yLocation;
     }
@@ -406,17 +405,17 @@ public abstract class GraphView extends View {
 
     private void drawEdgeEffect(Canvas canvas) {
         if (!mLeftEdgeEffect.isFinished()) {
-            canvas.translate(contentRect.left, contentRect.bottom);
+            canvas.translate(clipRectF.left, clipRectF.bottom);
             canvas.rotate(-90, 0, 0);
-            mLeftEdgeEffect.setSize(contentRect.height(), contentRect.width());
+            mLeftEdgeEffect.setSize((int) clipRectF.height(), (int) clipRectF.width());
             if (mLeftEdgeEffect.draw(canvas)) {
                 invalidate();
             }
         }
         if (!mRightEdgeEffect.isFinished()) {
-            canvas.translate(contentRect.right, contentRect.top);
+            canvas.translate(clipRectF.right, clipRectF.top);
             canvas.rotate(90, 0, 0);
-            mRightEdgeEffect.setSize(contentRect.height(), contentRect.width());
+            mRightEdgeEffect.setSize((int) clipRectF.height(), (int) clipRectF.width());
             if (mRightEdgeEffect.draw(canvas)) {
                 invalidate();
             }
@@ -442,19 +441,19 @@ public abstract class GraphView extends View {
 
         @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-            unclipRect.left -= distanceX;
-            unclipRect.right = unclipRect.left + xAxis.getStep() * (DataRes.getSeries().size() - 1);
-            if (unclipRect.left > contentRect.left) {
-                unclipRect.left = contentRect.left;
+            unclipRectF.left -= distanceX;
+            unclipRectF.right = unclipRectF.left + xAxis.getStep() * (DataRes.getSeries().size() - 1);
+            if (unclipRectF.left > clipRectF.left) {
+                unclipRectF.left = clipRectF.left;
             }
-            if (unclipRect.right < contentRect.right) {
-                unclipRect.left = contentRect.right - xAxis.getStep() * (DataRes.getSeries().size() - 1);
+            if (unclipRectF.right < clipRectF.right) {
+                unclipRectF.left = clipRectF.right - xAxis.getStep() * (DataRes.getSeries().size() - 1);
             }
-            if (distanceX < 0 && unclipRect.left >= contentRect.left) {
-                mLeftEdgeEffect.onPull(distanceX / contentRect.width(), 0.5f);
+            if (distanceX < 0 && unclipRectF.left >= clipRectF.left) {
+                mLeftEdgeEffect.onPull(distanceX / clipRectF.width(), 0.5f);
             }
-            if (distanceX > 0 && unclipRect.right <= contentRect.right) {
-                mRightEdgeEffect.onPull(distanceX / contentRect.width(), 0.5f);
+            if (distanceX > 0 && unclipRectF.right <= clipRectF.right) {
+                mRightEdgeEffect.onPull(distanceX / clipRectF.width(), 0.5f);
             }
             invalidate();
             return true;
@@ -462,8 +461,8 @@ public abstract class GraphView extends View {
 
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            mScroller.fling((int) unclipRect.left, 0, (int) velocityX, 0,
-                    (int) (contentRect.right - xAxis.getStep() * (DataRes.getSeries().size() - 1)), contentRect.left, 0, 0, (int) xAxis.getStep(), 0);
+            mScroller.fling((int) unclipRectF.left, 0, (int) velocityX, 0,
+                    (int) (clipRectF.right - xAxis.getStep() * (DataRes.getSeries().size() - 1)), (int) clipRectF.left, 0, 0, (int) xAxis.getStep(), 0);
             //guarantee the smoother effect.
             mLeftEdgeEffect.onRelease();
             mRightEdgeEffect.onRelease();
@@ -476,8 +475,7 @@ public abstract class GraphView extends View {
     public void computeScroll() {
         super.computeScroll();
         if (mScroller.computeScrollOffset()) {
-            unclipRect.left = mScroller.getCurrX();
-//            if (mLeftEdgeEffect.onAbsorb((int) mScroller.getCurrVelocity()) || mRightEdgeEffect.onAbsorb((int) mScroller.getCurrVelocity()))
+            unclipRectF.left = mScroller.getCurrX();
             invalidate();
         }
     }

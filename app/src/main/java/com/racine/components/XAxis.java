@@ -28,18 +28,11 @@ public class XAxis extends Axis<String> {
     }
 
     @Override
-    public void setStopsNum(int stopsNum) {
-        this.stopsNum = stopsNum;
-
-        step = Math.abs(contentRect.right - contentRect.left) / (stopsNum - 1);
-    }
-
-    @Override
-    public int getStopsNum() {
-        if (stopsNum == 0) {
-            stopsNum = (int) (Math.abs(contentRect.right - contentRect.left) / getStep()) + 1;
+    public int getSize() {
+        if (size == 0) {
+            size = values.size();
         }
-        return stopsNum;
+        return size;
     }
 
     public int getIndex(String value) {

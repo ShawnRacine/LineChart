@@ -20,9 +20,4 @@ public class LineGraph extends GraphView {
     public LineGraph(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
     }
-
-    @Override
-    protected void renderSeriesPaint(Paint seriesPaint) {
-        super.renderSeriesPaint(seriesPaint);
-    }
 }
