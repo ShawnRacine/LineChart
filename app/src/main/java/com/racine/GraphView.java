@@ -234,7 +234,7 @@ public abstract class GraphView extends View {
     }
 
     public void start(int duration) {
-        mScroller.startScroll((int) clipRectF.left, 0, (int) -(unclipRectF.width() - (clipRectF.right - clipRectF.left)), 0, duration);
+        mScroller.startScroll((int) unclipRectF.left, 0, (int) -(unclipRectF.right - clipRectF.right), 0, duration);
     }
 
     @Override
@@ -295,7 +295,7 @@ public abstract class GraphView extends View {
             Paint seriesPaint;
             try {
                 seriesPaint = seriesPaintList.get(j);
-            }catch (Exception e){
+            } catch (Exception e) {
                 seriesPaint = seriesPaintList.get(0);
             }
 
@@ -476,8 +476,10 @@ public abstract class GraphView extends View {
     @Override
     public void computeScroll() {
         super.computeScroll();
+        Log.i(TAG, "computeScroll: " + mScroller.getCurrX());
         if (mScroller.computeScrollOffset()) {
             unclipRectF.left = mScroller.getCurrX();
+            unclipRectF.right = unclipRectF.left + (xAxis.getSize() - 1) * xAxis.getStep();
             invalidate();
         }
     }
