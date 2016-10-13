@@ -44,7 +44,7 @@ public class DataRes {
         series.add("2007", 160.1f);
         series.add("2008", 140.7f);
         series.add("2009", 120.1f);
-        series.add("2010", 170.2f);
+        series.add("2010", 175.2f);
         series.add("2011", 160.9f);
         series.add("2012", 170.4f);
         series.add("2013", 210.8f);

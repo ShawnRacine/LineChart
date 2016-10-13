@@ -65,35 +65,35 @@ public class YAxis extends Axis<Float> {
         return maxValue;
     }
 
-    public void setCurrentMinValue(float currentMinYValue) {
+    public void setDisplayMinValue(float currentMinYValue) {
         this.currentMinValue = currentMinYValue;
     }
 
-    public float getCurrentMinValue() {
+    public float getDisplayMinValue() {
         if (currentMinValue == 0) {
             currentMinValue = getMinValue();
         }
         return currentMinValue;
     }
 
-    public void setCurrentMaxValue(float currentMaxYValue) {
+    public void setDisplayMaxValue(float currentMaxYValue) {
         this.currentMaxValue = currentMaxYValue;
     }
 
-    public float getCurrentMaxValue() {
+    public float getDisplayMaxValue() {
         if (currentMaxValue == 0) {
             currentMaxValue = getMaxValue();
         }
         return currentMaxValue;
     }
 
-    public float getCurrentValueStep() {
-        currentValueStep = (getCurrentMaxValue() - getCurrentMinValue()) / (getSize() - 1);
+    public float getDisplayValueUnit() {
+        currentValueStep = (getDisplayMaxValue() - getDisplayMinValue()) / (getSize() - 1);
         return currentValueStep;
     }
 
-    public float getCurrentValue(int index) {
-        currentValue = getCurrentMinValue() + index * getCurrentValueStep();
+    public float getDisplayValue(int index) {
+        currentValue = getDisplayMinValue() + index * getDisplayValueUnit();
         return currentValue;
     }
 }

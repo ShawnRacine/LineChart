@@ -129,6 +129,8 @@ public abstract class GraphView extends View {
             if (yAxis.getMaxValue() < series.getMaxYValue()) {
                 yAxis.setMaxValue(series.getMaxYValue());
             }
+            adjustYExtremun(yAxis);
+            refreshCurrentViewport();
         }
 
     }
@@ -208,14 +210,14 @@ public abstract class GraphView extends View {
 
         //As the change of unclipRectF.top or unclipRectF.bottom,
         // the currentMaxYValue or currentMinYValue of currentViewport need to change.
-        float currentMinYValue = yAxis.getMinValue() +
+        float displayMinYValue = yAxis.getMinValue() +
                 (unclipRectF.bottom - clipRectF.bottom) / (unclipRectF.bottom - unclipRectF.top)
                         * (yAxis.getMaxValue() - yAxis.getMinValue());
-        float currentMaxYValue = yAxis.getMaxValue() -
+        float displayMaxYValue = yAxis.getMaxValue() -
                 (clipRectF.top - unclipRectF.top) / (unclipRectF.bottom - unclipRectF.top)
                         * (yAxis.getMaxValue() - yAxis.getMinValue());
-        yAxis.setCurrentMinValue(currentMinYValue);
-        yAxis.setCurrentMaxValue(currentMaxYValue);
+        yAxis.setDisplayMinValue(displayMinYValue);
+        yAxis.setDisplayMaxValue(displayMaxYValue);
     }
 
     @Override
@@ -271,10 +273,10 @@ public abstract class GraphView extends View {
         int ySize = yAxis.getSize();
         float _xLocation = clipRectF.right + yAxis.getGap();
         for (int i = 0; i < ySize; i++) {
-            float _yLocation = getYLocation(yAxis.getCurrentValue(i))
+            float _yLocation = getYLocation(yAxis.getDisplayValue(i))
                     + Math.abs(labelPaint.getFontMetrics().ascent) / 3;
 
-            canvas.drawText(formatYLabel(yAxis.getCurrentValue(i)), _xLocation, _yLocation, labelPaint);
+            canvas.drawText(formatYLabel(yAxis.getDisplayValue(i)), _xLocation, _yLocation, labelPaint);
         }
         labelPaint.setTextAlign(Paint.Align.CENTER);
     }
