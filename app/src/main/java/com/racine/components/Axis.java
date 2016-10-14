@@ -1,18 +1,17 @@
-package com.racine.interfaces;
+package com.racine.components;
 
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
  * Created by sunrx on 2016/8/30.
  */
 public abstract class Axis<T> {
-    protected RectF contentRect;
-
     protected Paint paint;
 
     protected float labelWidth;
@@ -24,7 +23,12 @@ public abstract class Axis<T> {
 
     protected float step;
 
+    private float minValue;
+    private float maxValue;
+
     protected List<T> values;
+
+    private List<Boolean> visibleList;
 
     public Axis() {
         paint = new Paint();
@@ -36,10 +40,7 @@ public abstract class Axis<T> {
         gap = 10;
 
         values = new ArrayList<>();
-    }
-
-    public void setContentRect(RectF contentRect) {
-        this.contentRect = contentRect;
+        visibleList = new ArrayList<>();
     }
 
     public float getLabelWidth() {
@@ -90,11 +91,47 @@ public abstract class Axis<T> {
         return values.get(index);
     }
 
-    public List<T> getValues(){
+    public void setMinValue(float minYValue) {
+        this.minValue = minYValue;
+    }
+
+    public float getMinValue() {
+        return minValue;
+    }
+
+    public void setMaxValue(float maxYValue) {
+        this.maxValue = maxYValue;
+    }
+
+    public float getMaxValue() {
+        return maxValue;
+    }
+
+    public List<T> getValues() {
         return values;
     }
 
     public int size() {
         return values.size();
+    }
+
+    public int getIndex(String value) {
+        return values.indexOf(value);
+    }
+
+    public boolean isVisible(int index) {
+        if (visibleList.size() > index) {
+            return visibleList.get(index);
+        } else {
+            return false;
+        }
+    }
+
+    public void setVisible(int index) {
+        visibleList.add(index, true);
+    }
+
+    public void setInVisible(int index) {
+        visibleList.add(index, false);
     }
 }

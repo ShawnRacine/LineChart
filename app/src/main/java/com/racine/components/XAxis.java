@@ -1,7 +1,5 @@
 package com.racine.components;
 
-import com.racine.interfaces.Axis;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,13 +8,8 @@ import java.util.List;
  */
 public class XAxis extends Axis<String> {
 
-    private List<Boolean> visibleList;
-
-    private int index;
-
     public XAxis() {
         super();
-        visibleList = new ArrayList<>();
     }
 
     @Override
@@ -33,25 +26,5 @@ public class XAxis extends Axis<String> {
             size = values.size();
         }
         return size;
-    }
-
-    public int getIndex(String value) {
-        return values.indexOf(value);
-    }
-
-    public boolean isVisible(int index) {
-        if (visibleList.size() > index) {
-            return visibleList.get(index);
-        } else {
-            return false;
-        }
-    }
-
-    public void setVisible(int index) {
-        visibleList.add(index, true);
-    }
-
-    public void setInVisible(int index) {
-        visibleList.add(index, false);
     }
 }

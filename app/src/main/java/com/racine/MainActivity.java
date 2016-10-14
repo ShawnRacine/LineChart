@@ -23,13 +23,13 @@ public class MainActivity extends AppCompatActivity {
         chart = (GraphView) findViewById(R.id.chart);
         chart.addSeries(DataRes.getSeries());
 
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                chart.addSeries(DataRes.getSeries1());
-                chart.invalidate();
-                chart.start(3000);
-            }
-        }, 3000);
+//        handler.postDelayed(new Runnable() {
+//            @Override
+//            public void run() {
+//                chart.addSeries(DataRes.getSeries1());
+//                chart.invalidate();
+//                chart.start(3000);
+//            }
+//        }, 3000);
     }
 }
