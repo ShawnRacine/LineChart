@@ -8,8 +8,10 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.OverScroller;
-
-import com.racine.components.*;
+import com.racine.components.Axis;
+import com.racine.components.Series;
+import com.racine.components.XAxis;
+import com.racine.components.YAxis;
 import com.racine.linechart.R;
 import com.racine.renderer.axis.AxisRenderer;
 import com.racine.renderer.axis.XAxisRenderer;
@@ -26,6 +28,8 @@ import com.racine.utils.ViewportHandler;
 import java.util.ArrayList;
 import java.util.List;
 
+import static android.R.attr.width;
+
 /**
  * Created by sunrx on 2016/8/23.
  */
@@ -33,8 +37,6 @@ public abstract class GraphView extends View {
     private static final String TAG = "LineC";
 
     private Context context;
-
-    private int width, height;
 
     protected XAxis xAxis = new XAxis();
     protected YAxis yAxis = new YAxis();
@@ -109,10 +111,8 @@ public abstract class GraphView extends View {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        width = w;
-        height = h;
 
-        viewportHandler.setDimens(width, height);
+        viewportHandler.setDimens(w, h);
         viewportHandler.restrainViewport(getPaddingLeft(), getPaddingTop(), getPaddingRight(), getPaddingBottom());
 
         xAxisRenderer = new XAxisRenderer(viewportHandler, xAxis);
@@ -133,10 +133,10 @@ public abstract class GraphView extends View {
         setMinimumWidth(minChartSize);
         setMinimumHeight(minChartSize);
         //when set wrapcontent,
-        int width = getPaddingLeft() + getPaddingRight() + getSuggestedMinimumWidth();
-        int height = getPaddingTop() + getPaddingBottom() + getSuggestedMinimumHeight();
+        int wrap_width = getPaddingLeft() + getPaddingRight() + getSuggestedMinimumWidth();
+        int wrap_height = getPaddingTop() + getPaddingBottom() + getSuggestedMinimumHeight();
 
-        setMeasuredDimension(resolveSize(width, widthMeasureSpec), resolveSize(height, heightMeasureSpec));
+        setMeasuredDimension(resolveSize(wrap_width, widthMeasureSpec), resolveSize(wrap_height, heightMeasureSpec));
     }
 
     public void start(int duration) {
