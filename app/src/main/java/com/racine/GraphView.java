@@ -10,20 +10,19 @@ import android.view.View;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.OverScroller;
 
-import com.racine.components.Axis;
+import com.racine.components.*;
 import com.racine.linechart.R;
-import com.racine.components.XAxis;
-import com.racine.components.YAxis;
-import com.racine.components.Series;
-import com.racine.datas.DataRes;
 import com.racine.renderer.axis.AxisRenderer;
 import com.racine.renderer.axis.XAxisRenderer;
 import com.racine.renderer.axis.YAxisRenderer;
 import com.racine.renderer.edge.EdgeEffectRenderer;
 import com.racine.renderer.edge.LeftEdgeEffectRenderer;
 import com.racine.renderer.edge.RightEdgeEffectRenderer;
+import com.racine.renderer.legend.LegendRenderer;
+import com.racine.renderer.legend.LineLegendRenderer;
 import com.racine.renderer.series.SeriesRenderer;
 import com.racine.renderer.series.SmoothLineRenderer;
+import com.racine.utils.ViewportHandler;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -45,6 +44,8 @@ public abstract class GraphView extends View {
     protected RectF unclipRectF = new RectF();
     protected RectF clipRectF = new RectF();
 
+    protected ViewportHandler viewportHandler;
+
     protected AxisRenderer xAxisRenderer;
     protected AxisRenderer yAxisRenderer;
 
@@ -52,6 +53,8 @@ public abstract class GraphView extends View {
     protected EdgeEffectRenderer rightEdgeEffectRenderer;
 
     protected SeriesRenderer seriesRenderer;
+
+    protected LegendRenderer legendRenderer;
 
     private List<Series> seriesList;
 
@@ -71,6 +74,8 @@ public abstract class GraphView extends View {
     public GraphView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         this.context = context;
+
+        viewportHandler = new ViewportHandler(this, xAxis, yAxis);
 
         seriesList = new ArrayList<>();
 
@@ -112,6 +117,9 @@ public abstract class GraphView extends View {
         width = w;
         height = h;
 
+        viewportHandler.setDimens(width, height);
+        viewportHandler.restrainViewport(getPaddingLeft(), getPaddingTop(), getPaddingRight(), getPaddingBottom());
+
         contentRectF.set(getPaddingLeft(), getPaddingTop(), width - getPaddingRight(), height - getPaddingBottom());
 
         clipRectF.set(contentRectF.left + xAxis.getLabelWidth() / 2,
@@ -121,13 +129,15 @@ public abstract class GraphView extends View {
 
         unclipRectF.set(clipRectF.left, clipRectF.top, clipRectF.left + (xAxis.getSize() - 1) * xAxis.getStep(), clipRectF.bottom);
 
-        xAxisRenderer = new XAxisRenderer(clipRectF, xAxis, unclipRectF);
-        yAxisRenderer = new YAxisRenderer(clipRectF, yAxis);
+        xAxisRenderer = new XAxisRenderer(viewportHandler, xAxis);
+        yAxisRenderer = new YAxisRenderer(viewportHandler, yAxis);
 
-        leftEdgeEffectRenderer = new LeftEdgeEffectRenderer(context, this, clipRectF);
-        rightEdgeEffectRenderer = new RightEdgeEffectRenderer(context, this, clipRectF);
+        leftEdgeEffectRenderer = new LeftEdgeEffectRenderer(context, viewportHandler);
+        rightEdgeEffectRenderer = new RightEdgeEffectRenderer(context, viewportHandler);
 
-        seriesRenderer = new SmoothLineRenderer(clipRectF, xAxisRenderer, yAxisRenderer, xAxis);
+        seriesRenderer = new SmoothLineRenderer(viewportHandler, xAxisRenderer, yAxisRenderer);
+
+        legendRenderer = new LineLegendRenderer();
     }
 
     @Override
@@ -144,7 +154,7 @@ public abstract class GraphView extends View {
     }
 
     public void start(int duration) {
-        mScroller.startScroll((int) unclipRectF.left, 0, (int) -(unclipRectF.right - clipRectF.right), 0, duration);
+        mScroller.startScroll(viewportHandler.scrollStartX(), 0, viewportHandler.scrollDistanceX(), 0, duration);
     }
 
     @Override
@@ -162,6 +172,8 @@ public abstract class GraphView extends View {
 
         leftEdgeEffectRenderer.drawEdgeEffect(canvas);
         rightEdgeEffectRenderer.drawEdgeEffect(canvas);
+
+        legendRenderer.drawLegend(canvas);
     }
 
     @Override
@@ -183,12 +195,12 @@ public abstract class GraphView extends View {
 
         @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-            scrollViewport(unclipRectF.left - distanceX);
+            scrollViewport(viewportHandler.scrollerCurrentX(distanceX));
 
-            if (unclipRectF.left >= clipRectF.left) {
+            if (viewportHandler.isLeftEdge()) {
                 leftEdgeEffectRenderer.onPull(distanceX);
             }
-            if (unclipRectF.right <= clipRectF.right) {
+            if (viewportHandler.isRightEdge()) {
                 rightEdgeEffectRenderer.onPull(distanceX);
             }
             postInvalidate();
@@ -197,8 +209,8 @@ public abstract class GraphView extends View {
 
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            mScroller.fling((int) unclipRectF.left, 0, (int) velocityX, 0,
-                    (int) (clipRectF.right - xAxis.getStep() * (DataRes.getSeries().size() - 1)), (int) clipRectF.left, 0, 0, (int) xAxis.getStep(), 0);
+            mScroller.fling(viewportHandler.flingStartX(), 0, (int) velocityX, 0,
+                    viewportHandler.flingMinX(), viewportHandler.flingMaxX(), (int) xAxis.getStep(), 0);
             //guarantee the smoother effect.
             leftEdgeEffectRenderer.onRelease();
             rightEdgeEffectRenderer.onRelease();
@@ -218,14 +230,13 @@ public abstract class GraphView extends View {
     }
 
     private void scrollViewport(float position) {
-        unclipRectF.left = position;
-        unclipRectF.right = unclipRectF.left + (xAxis.getSize() - 1) * xAxis.getStep();
+        viewportHandler.setWholeLeft(position);
 
-        if (unclipRectF.left > clipRectF.left) {
-            unclipRectF.left = clipRectF.left;
+        if (viewportHandler.isLeftEdge()) {
+            viewportHandler.setWholeLeft(viewportHandler.layerLeft());
         }
-        if (unclipRectF.right < clipRectF.right) {
-            unclipRectF.left = clipRectF.right - xAxis.getStep() * (DataRes.getSeries().size() - 1);
+        if (viewportHandler.isRightEdge()) {
+            viewportHandler.setWholeRight(viewportHandler.layerRight());
         }
     }
 

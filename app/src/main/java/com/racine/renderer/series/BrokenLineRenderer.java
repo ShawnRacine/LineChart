@@ -3,17 +3,16 @@ package com.racine.renderer.series;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.RectF;
-import com.racine.components.Axis;
+import com.racine.utils.ViewportHandler;
 import com.racine.renderer.axis.AxisRenderer;
 
 /**
  * Created by sunrx on 2016/10/14.
  */
-public class BrokenLineRender extends SeriesRenderer {
+public class BrokenLineRenderer extends SeriesRenderer {
 
-    public BrokenLineRender(RectF layerRectF, AxisRenderer xAxisRenderer, AxisRenderer yAxisRenderer, Axis xAxis) {
-        super(layerRectF, xAxisRenderer, yAxisRenderer, xAxis);
+    public BrokenLineRenderer(ViewportHandler viewportHandler, AxisRenderer xAxisRenderer, AxisRenderer yAxisRenderer) {
+        super(viewportHandler, xAxisRenderer, yAxisRenderer);
     }
 
     @Override
@@ -28,6 +27,6 @@ public class BrokenLineRender extends SeriesRenderer {
 
     @Override
     protected void drawGrid(Canvas canvas, float xLocation) {
-        canvas.drawLine(xLocation, layerRectF.top, xLocation, layerRectF.bottom, getGridPaint());
+        canvas.drawLine(xLocation, viewportHandler.layerTop(), xLocation, viewportHandler.layerBottom(), getGridPaint());
     }
 }

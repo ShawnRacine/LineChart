@@ -2,16 +2,15 @@ package com.racine.renderer.edge;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.RectF;
-import android.view.View;
+import com.racine.utils.ViewportHandler;
 
 /**
  * Created by sunrx on 2016/10/14.
  */
 public class LeftEdgeEffectRenderer extends EdgeEffectRenderer {
 
-    public LeftEdgeEffectRenderer(Context context, View view, RectF displayRectF) {
-        super(context, view, displayRectF);
+    public LeftEdgeEffectRenderer(Context context, ViewportHandler viewportHandler) {
+        super(context, viewportHandler);
     }
 
     @Override
@@ -19,11 +18,11 @@ public class LeftEdgeEffectRenderer extends EdgeEffectRenderer {
         int c = canvas.save();
 
         if (!edgeEffect.isFinished()) {
-            canvas.translate(displayRectF.left, displayRectF.bottom);
+            canvas.translate(viewportHandler.layerLeft(), viewportHandler.layerBottom());
             canvas.rotate(-90, 0, 0);
-            edgeEffect.setSize((int) displayRectF.height(), (int) displayRectF.width());
+            edgeEffect.setSize((int) viewportHandler.layerHeight(), (int) viewportHandler.layerWidth());
             if (edgeEffect.draw(canvas)) {
-                view.postInvalidate();
+                viewportHandler.postInvalidate();
             }
         }
 

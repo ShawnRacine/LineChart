@@ -3,20 +3,20 @@ package com.racine.renderer.axis;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.RectF;
 import com.racine.components.Axis;
+import com.racine.utils.ViewportHandler;
 
 /**
  * Created by sunrx on 2016/10/14.
  */
 public abstract class AxisRenderer<T> {
-    protected RectF displayRectF;
+    protected ViewportHandler viewportHandler;
     protected Axis axis;
     private Paint axisPaint;
     private Paint labelPaint;
 
-    public AxisRenderer(RectF displayRectF, Axis axis) {
-        this.displayRectF = displayRectF;
+    public AxisRenderer(ViewportHandler viewportHandler, Axis axis) {
+        this.viewportHandler = viewportHandler;
         this.axis = axis;
 
         axisPaint = new Paint();

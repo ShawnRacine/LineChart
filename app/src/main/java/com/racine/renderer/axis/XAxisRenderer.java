@@ -1,8 +1,8 @@
 package com.racine.renderer.axis;
 
 import android.graphics.Canvas;
-import android.graphics.RectF;
 import com.racine.components.Axis;
+import com.racine.utils.ViewportHandler;
 import com.racine.formatter.DefaultXAxisValueFormatter;
 import com.racine.formatter.ValueFormatter;
 
@@ -10,24 +10,23 @@ import com.racine.formatter.ValueFormatter;
  * Created by sunrx on 2016/10/14.
  */
 public class XAxisRenderer extends AxisRenderer<String> {
-    private RectF unclipRectF;
     private ValueFormatter valueFormatter;
 
-    public XAxisRenderer(RectF displayRectF, Axis axis,RectF unclipRectF) {
-        super(displayRectF, axis);
-        this.unclipRectF = unclipRectF;
+    public XAxisRenderer(ViewportHandler viewportHandler, Axis axis) {
+        super(viewportHandler, axis);
         valueFormatter = new DefaultXAxisValueFormatter();
     }
 
     @Override
     public void drawAxisLine(Canvas canvas) {
-        canvas.drawLine(displayRectF.left, displayRectF.bottom, displayRectF.right, displayRectF.bottom, getAxisPaint());
+        canvas.drawLine(viewportHandler.layerLeft(), viewportHandler.layerBottom(),
+                viewportHandler.layerRight(), viewportHandler.layerBottom(), getAxisPaint());
     }
 
     @Override
     public void drawAxisLabel(Canvas canvas) {
         int xSize = axis.size();
-        float yLocation = displayRectF.bottom + axis.getLabelHeight() + axis.getGap();
+        float yLocation = viewportHandler.layerBottom() + axis.getLabelHeight() + axis.getGap();
         for (int i = 0; i < xSize; i++) {
             if (axis.isVisible(i)) {
                 float xLocation = getLocation((String) axis.getValue(i));
@@ -39,6 +38,6 @@ public class XAxisRenderer extends AxisRenderer<String> {
 
     @Override
     public float getLocation(String value) {
-        return unclipRectF.left + axis.getIndex(value) * axis.getStep();
+        return viewportHandler.getWholeLeft() + axis.getIndex(value) * axis.getStep();
     }
 }

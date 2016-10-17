@@ -1,8 +1,8 @@
 package com.racine.renderer.series;
 
 import android.graphics.*;
-import com.racine.components.Axis;
 import com.racine.components.Series;
+import com.racine.utils.ViewportHandler;
 import com.racine.renderer.axis.AxisRenderer;
 
 import java.util.ArrayList;
@@ -12,19 +12,17 @@ import java.util.List;
  * Created by sunrx on 2016/10/14.
  */
 public abstract class SeriesRenderer {
-    protected RectF layerRectF;
+    protected ViewportHandler viewportHandler;
     protected AxisRenderer xAxisRenderer;
     protected AxisRenderer yAxisRenderer;
-    private Axis xAxis;
 
     private List<Paint> seriesPaintList;
     private Paint gridPaint;
 
-    public SeriesRenderer(RectF layerRectF, AxisRenderer xAxisRenderer, AxisRenderer yAxisRenderer, Axis xAxis) {
-        this.layerRectF = layerRectF;
+    public SeriesRenderer(ViewportHandler viewportHandler, AxisRenderer xAxisRenderer, AxisRenderer yAxisRenderer) {
+        this.viewportHandler = viewportHandler;
         this.xAxisRenderer = xAxisRenderer;
         this.yAxisRenderer = yAxisRenderer;
-        this.xAxis = xAxis;
 
         seriesPaintList = new ArrayList<>();
         gridPaint = new Paint();
@@ -64,7 +62,7 @@ public abstract class SeriesRenderer {
 
             Series series = seriesList.get(j);
 
-            int c = canvas.saveLayer(layerRectF, null, Canvas.ALL_SAVE_FLAG);
+            int c = canvas.saveLayer(viewportHandler.layerRect(), null, Canvas.ALL_SAVE_FLAG);
 
             Path path = new Path();
 
@@ -90,10 +88,10 @@ public abstract class SeriesRenderer {
 
                 drawGrid(canvas, xLocation);
                 //
-                if (xLocation >= layerRectF.left && xLocation <= layerRectF.right) {
-                    xAxis.setVisible(i);
+                if (xLocation >= viewportHandler.layerLeft() && xLocation <= viewportHandler.layerRight()) {
+                    viewportHandler.setXAxisVisible(i);
                 } else {
-                    xAxis.setInVisible(i);
+                    viewportHandler.setXAxisInVisible(i);
                 }
             }
             canvas.drawPath(path, seriesPaint);

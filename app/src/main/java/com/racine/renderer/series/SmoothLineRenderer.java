@@ -3,8 +3,7 @@ package com.racine.renderer.series;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.RectF;
-import com.racine.components.Axis;
+import com.racine.utils.ViewportHandler;
 import com.racine.renderer.axis.AxisRenderer;
 
 /**
@@ -15,8 +14,8 @@ public class SmoothLineRenderer extends SeriesRenderer {
     private float lX = 0;
     private float lY = 0;
 
-    public SmoothLineRenderer(RectF layerRectF, AxisRenderer xAxisRenderer, AxisRenderer yAxisRenderer, Axis xAxis) {
-        super(layerRectF, xAxisRenderer, yAxisRenderer, xAxis);
+    public SmoothLineRenderer(ViewportHandler viewportHandler, AxisRenderer xAxisRenderer, AxisRenderer yAxisRenderer) {
+        super(viewportHandler, xAxisRenderer, yAxisRenderer);
     }
 
     @Override
@@ -48,6 +47,6 @@ public class SmoothLineRenderer extends SeriesRenderer {
 
     @Override
     protected void drawGrid(Canvas canvas, float xLocation) {
-        canvas.drawLine(xLocation, layerRectF.top, xLocation, layerRectF.bottom, getGridPaint());
+        canvas.drawLine(xLocation, viewportHandler.layerTop(), xLocation, viewportHandler.layerBottom(), getGridPaint());
     }
 }
