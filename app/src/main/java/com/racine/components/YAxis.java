@@ -1,7 +1,5 @@
 package com.racine.components;
 
-import java.util.Collections;
-
 /**
  * Created by sunrx on 2016/9/2.
  */

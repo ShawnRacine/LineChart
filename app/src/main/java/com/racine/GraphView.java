@@ -2,7 +2,6 @@ package com.racine;
 
 import android.content.Context;
 import android.graphics.Canvas;
-import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -39,10 +38,6 @@ public abstract class GraphView extends View {
 
     protected XAxis xAxis = new XAxis();
     protected YAxis yAxis = new YAxis();
-
-    protected RectF contentRectF = new RectF();
-    protected RectF unclipRectF = new RectF();
-    protected RectF clipRectF = new RectF();
 
     protected ViewportHandler viewportHandler;
 
@@ -119,15 +114,6 @@ public abstract class GraphView extends View {
 
         viewportHandler.setDimens(width, height);
         viewportHandler.restrainViewport(getPaddingLeft(), getPaddingTop(), getPaddingRight(), getPaddingBottom());
-
-        contentRectF.set(getPaddingLeft(), getPaddingTop(), width - getPaddingRight(), height - getPaddingBottom());
-
-        clipRectF.set(contentRectF.left + xAxis.getLabelWidth() / 2,
-                contentRectF.top + yAxis.getLabelHeight(),
-                contentRectF.right - yAxis.getLabelWidth() - yAxis.getGap(),
-                contentRectF.bottom - xAxis.getLabelHeight() - xAxis.getGap());
-
-        unclipRectF.set(clipRectF.left, clipRectF.top, clipRectF.left + (xAxis.getSize() - 1) * xAxis.getStep(), clipRectF.bottom);
 
         xAxisRenderer = new XAxisRenderer(viewportHandler, xAxis);
         yAxisRenderer = new YAxisRenderer(viewportHandler, yAxis);

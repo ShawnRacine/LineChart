@@ -3,7 +3,6 @@ package com.racine.utils;
 import android.graphics.RectF;
 import android.view.View;
 import com.racine.components.Axis;
-import com.racine.datas.DataRes;
 import com.racine.exception.UnassignedException;
 
 /**

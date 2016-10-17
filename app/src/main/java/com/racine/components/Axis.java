@@ -1,11 +1,8 @@
 package com.racine.components;
 
 import android.graphics.Paint;
-import android.graphics.Rect;
-import android.graphics.RectF;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**

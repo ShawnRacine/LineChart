@@ -4,11 +4,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.ListView;
-
-import com.racine.linechart.R;
 import com.racine.datas.DataRes;
-
-import static java.lang.Thread.sleep;
+import com.racine.linechart.R;
 
 public class MainActivity extends AppCompatActivity {
     private ListView listView;

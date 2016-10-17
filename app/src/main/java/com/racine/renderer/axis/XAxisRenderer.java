@@ -2,9 +2,9 @@ package com.racine.renderer.axis;
 
 import android.graphics.Canvas;
 import com.racine.components.Axis;
-import com.racine.utils.ViewportHandler;
 import com.racine.formatter.DefaultXAxisValueFormatter;
 import com.racine.formatter.ValueFormatter;
+import com.racine.utils.ViewportHandler;
 
 /**
  * Created by sunrx on 2016/10/14.

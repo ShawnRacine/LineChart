@@ -1,18 +1,8 @@
 package com.racine;
 
 import android.content.Context;
-import android.graphics.Paint;
 import android.util.AttributeSet;
 import com.racine.components.Axis;
-import com.racine.components.Series;
-import com.racine.renderer.axis.AxisRenderer;
-import com.racine.renderer.axis.XAxisRenderer;
-import com.racine.renderer.axis.YAxisRenderer;
-import com.racine.renderer.edge.EdgeEffectRenderer;
-import com.racine.renderer.edge.LeftEdgeEffectRenderer;
-import com.racine.renderer.edge.RightEdgeEffectRenderer;
-import com.racine.renderer.series.SeriesRenderer;
-import com.racine.renderer.series.SmoothLineRenderer;
 
 /**
  * Created by sunrx on 2016/10/11.
