@@ -28,8 +28,6 @@ import com.racine.utils.ViewportHandler;
 import java.util.ArrayList;
 import java.util.List;
 
-import static android.R.attr.width;
-
 /**
  * Created by sunrx on 2016/8/23.
  */
