@@ -12,10 +12,12 @@ import com.racine.utils.ViewportHandler;
  */
 public class YAxisRenderer extends AxisRenderer<Float> {
     private ValueFormatter valueFormatter;
+    private Axis yAxis;
 
-    public YAxisRenderer(ViewportHandler viewportHandler, Axis axis) {
-        super(viewportHandler, axis);
+    public YAxisRenderer(ViewportHandler viewportHandler) {
+        super(viewportHandler);
         valueFormatter = new DefaultYAxisValueFormatter("万");
+        yAxis = viewportHandler.yAxis;
     }
 
     @Override
@@ -28,25 +30,18 @@ public class YAxisRenderer extends AxisRenderer<Float> {
     public void drawAxisLabel(Canvas canvas) {
         getLabelPaint().setTextAlign(Paint.Align.LEFT);
 
-        int ySize = axis.getSize();
-        float _xLocation = viewportHandler.layerRight() + axis.getGap();
-        for (int i = 0; i < ySize; i++) {
-            float _yLocation = getLocation((Float) axis.getValue(i))
-                    + Math.abs(getLabelPaint().getFontMetrics().ascent) / 3;
+        int yAxisLabelCount = yAxis.getLabelCount();
+        float _xLocation = viewportHandler.layerRight() + yAxis.getGap();
+        for (int i = 0; i < yAxisLabelCount; i++) {
+            float yLocation = yAxis.getLocation(yAxis.getValue(i));
+            float _yLocation = yLocation + Math.abs(getLabelPaint().getFontMetrics().ascent) / 3;
 
-            canvas.drawText(valueFormatter.getFormattedValue(axis.getValue(i)), _xLocation, _yLocation, getLabelPaint());
+            canvas.drawText(valueFormatter.getFormattedValue(yAxis.getValue(i)), _xLocation, _yLocation, getLabelPaint());
+            //Draw grid lines by default.
+            if (drawGridLines) {
+                canvas.drawLine(viewportHandler.layerRight(), yLocation, viewportHandler.layerLeft(), yLocation, getGridPaint());
+            }
         }
         getLabelPaint().setTextAlign(Paint.Align.CENTER);
-    }
-
-    @Override
-    public float getLocation(Float value) {
-        float yValueRange = axis.getMaxValue() - axis.getMinValue();
-
-        float yLocationRange = viewportHandler.layerBottom() - viewportHandler.layerTop();
-
-        float yLocation = yLocationRange * (axis.getMaxValue() - value) / yValueRange + viewportHandler.layerTop();
-
-        return yLocation;
     }
 }

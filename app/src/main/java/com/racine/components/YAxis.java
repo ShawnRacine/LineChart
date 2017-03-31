@@ -1,23 +1,32 @@
 package com.racine.components;
 
+import android.graphics.RectF;
+
 /**
  * Created by sunrx on 2016/9/2.
  */
 public class YAxis extends Axis<Float> {
-    private int DEFAULT_SIZE = 6;
+    private float layerTop;
+    private float layerBottom;
 
     public YAxis() {
         super();
     }
 
-    public void setSize(int size) {
-        this.size = size;
+    @Override
+    public float getLocation(Float value) {
+        float yValueRange = getMaxValue() - getMinValue();
+
+        float yLocationRange = layerBottom - layerTop;
+
+        float yLocation = yLocationRange * (getMaxValue() - value) / yValueRange + layerTop;
+
+        return yLocation;
     }
 
-    public int getSize() {
-        if (size == 0) {
-            size = DEFAULT_SIZE;
-        }
-        return size;
+    @Override
+    public void setLocationRange(RectF ranges) {
+        this.layerTop = ranges.top;
+        this.layerBottom = ranges.bottom;
     }
 }

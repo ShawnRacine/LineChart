@@ -11,10 +11,12 @@ import com.racine.utils.ViewportHandler;
  */
 public class XAxisRenderer extends AxisRenderer<String> {
     private ValueFormatter valueFormatter;
+    private Axis xAxis;
 
-    public XAxisRenderer(ViewportHandler viewportHandler, Axis axis) {
-        super(viewportHandler, axis);
+    public XAxisRenderer(ViewportHandler viewportHandler) {
+        super(viewportHandler);
         valueFormatter = new DefaultXAxisValueFormatter();
+        xAxis = viewportHandler.xAxis;
     }
 
     @Override
@@ -25,19 +27,18 @@ public class XAxisRenderer extends AxisRenderer<String> {
 
     @Override
     public void drawAxisLabel(Canvas canvas) {
-        int xSize = axis.size();
-        float yLocation = viewportHandler.layerBottom() + axis.getLabelHeight() + axis.getGap();
+        int xSize = xAxis.size();
+        float yLocation = viewportHandler.layerBottom() + xAxis.getLabelHeight() + xAxis.getGap();
         for (int i = 0; i < xSize; i++) {
-            if (axis.isVisible(i)) {
-                float xLocation = getLocation((String) axis.getValue(i));
+            if (xAxis.isVisible(i)) {
+                float xLocation = xAxis.getLocation(xAxis.getValue(i));
 
-                canvas.drawText(valueFormatter.getFormattedValue(axis.getValue(i)), xLocation, yLocation, getLabelPaint());
+                canvas.drawText(valueFormatter.getFormattedValue(xAxis.getValue(i)), xLocation, yLocation, getLabelPaint());
+                //Draw grid lines by default.
+                if (drawGridLines) {
+                    canvas.drawLine(xLocation, viewportHandler.layerTop(), xLocation, viewportHandler.layerBottom(), getGridPaint());
+                }
             }
         }
-    }
-
-    @Override
-    public float getLocation(String value) {
-        return viewportHandler.getWholeLeft() + axis.getIndex(value) * axis.getStep();
     }
 }

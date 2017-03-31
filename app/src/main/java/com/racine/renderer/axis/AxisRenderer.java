@@ -3,7 +3,6 @@ package com.racine.renderer.axis;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import com.racine.components.Axis;
 import com.racine.utils.ViewportHandler;
 
 /**
@@ -11,22 +10,30 @@ import com.racine.utils.ViewportHandler;
  */
 public abstract class AxisRenderer<T> {
     protected ViewportHandler viewportHandler;
-    protected Axis axis;
     private Paint axisPaint;
+    private Paint gridPaint;
     private Paint labelPaint;
+    protected boolean drawGridLines = true;
 
-    public AxisRenderer(ViewportHandler viewportHandler, Axis axis) {
+    public AxisRenderer(ViewportHandler viewportHandler) {
         this.viewportHandler = viewportHandler;
-        this.axis = axis;
 
         axisPaint = new Paint();
+        gridPaint = new Paint();
         labelPaint = new Paint();
 
         renderAxisPaint(axisPaint);
+        renderGridPaint(gridPaint);
         renderLabelPaint(labelPaint);
     }
 
     protected void renderAxisPaint(Paint paint) {
+        paint.setColor(Color.BLACK);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setStrokeWidth(1f);
+    }
+
+    protected void renderGridPaint(Paint paint){
         paint.setColor(Color.BLACK);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(1f);
@@ -42,19 +49,22 @@ public abstract class AxisRenderer<T> {
         return axisPaint;
     }
 
+    protected Paint getGridPaint(){
+        return gridPaint;
+    }
+
     protected Paint getLabelPaint() {
         return labelPaint;
+    }
+
+    /**
+     * @param drawlines
+     */
+    public void drawGridLines(boolean drawlines) {
+        drawGridLines = drawlines;
     }
 
     public abstract void drawAxisLine(Canvas canvas);
 
     public abstract void drawAxisLabel(Canvas canvas);
-
-    /**
-     * get location by value.
-     *
-     * @param value value from datasource.
-     * @return location.
-     */
-    public abstract float getLocation(T value);
 }

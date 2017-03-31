@@ -9,7 +9,7 @@ import com.racine.linechart.R;
 
 public class MainActivity extends AppCompatActivity {
     private ListView listView;
-    GraphView chart;
+    LineGraph chart;
     Handler handler = new Handler();
 
     @Override
@@ -17,7 +17,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        chart = (GraphView) findViewById(R.id.chart);
+        chart = (LineGraph) findViewById(R.id.chart);
         chart.addSeries(DataRes.getSeries());
 
 //        handler.postDelayed(new Runnable() {

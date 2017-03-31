@@ -4,7 +4,6 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
 import com.racine.utils.ViewportHandler;
-import com.racine.renderer.axis.AxisRenderer;
 
 /**
  * Created by sunrx on 2016/10/14.
@@ -14,8 +13,8 @@ public class SmoothLineRenderer extends SeriesRenderer {
     private float lX = 0;
     private float lY = 0;
 
-    public SmoothLineRenderer(ViewportHandler viewportHandler, AxisRenderer xAxisRenderer, AxisRenderer yAxisRenderer) {
-        super(viewportHandler, xAxisRenderer, yAxisRenderer);
+    public SmoothLineRenderer(ViewportHandler viewportHandler) {
+        super(viewportHandler);
     }
 
     @Override
@@ -43,10 +42,5 @@ public class SmoothLineRenderer extends SeriesRenderer {
     @Override
     protected void drawNode(Canvas canvas, float xLocation, float yLocation, Paint seriesPaint) {
         canvas.drawCircle(xLocation, yLocation, 5, seriesPaint);
-    }
-
-    @Override
-    protected void drawGrid(Canvas canvas, float xLocation) {
-        canvas.drawLine(xLocation, viewportHandler.layerTop(), xLocation, viewportHandler.layerBottom(), getGridPaint());
     }
 }
